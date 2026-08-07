@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>课程第二册 · 进阶版 · 小中医成长记</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; display:flex; align-items:center; justify-content:center;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:linear-gradient(180deg,#FBF7EF 0%,#EFE7D6 100%);
+    color:#33312E; padding:24px;
+  }
+  .box{
+    width:100%; max-width:380px; background:#fff; border-radius:22px;
+    padding:38px 30px 32px; box-shadow:0 10px 34px rgba(80,66,40,.13);
+    text-align:center;
+  }
+  .leaf{font-size:44px; line-height:1; margin-bottom:14px;}
+  h1{font-size:19px; margin:0 0 6px; color:#5C8A5A; line-height:1.45;}
+  .sub{font-size:13px; color:#9A9285; margin-bottom:26px;}
+  input[type=password]{
+    width:100%; padding:14px 16px; font-size:17px; text-align:center;
+    border:2px solid #E3DCCB; border-radius:13px; background:#FDFBF6;
+    color:#33312E; outline:none; letter-spacing:2px;
+    -webkit-appearance:none;
+  }
+  input[type=password]:focus{border-color:#7FB77E; background:#fff;}
+  button{
+    width:100%; margin-top:14px; padding:14px; font-size:16px; font-weight:600;
+    color:#fff; background:#7FB77E; border:none; border-radius:13px;
+    cursor:pointer; font-family:inherit; transition:background .15s;
+  }
+  button:hover:not(:disabled){background:#6BA36A;}
+  button:disabled{background:#C2D5C1; cursor:default;}
+  .remember{
+    margin-top:16px; font-size:13px; color:#8A8378;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    user-select:none;
+  }
+  .remember input{width:16px; height:16px; accent-color:#7FB77E;}
+  .msg{margin-top:16px; font-size:13.5px; min-height:20px; line-height:1.6;}
+  .msg.err{color:#D4635A;}
+  .msg.info{color:#8A8378;}
+  .bar{
+    margin-top:14px; height:6px; background:#EEE8DB; border-radius:99px;
+    overflow:hidden; display:none;
+  }
+  .bar.on{display:block;}
+  .bar i{display:block; height:100%; width:0%; background:#7FB77E; border-radius:99px; transition:width .25s;}
+  .back{display:inline-block; margin-top:22px; font-size:13px; color:#A89E8E; text-decoration:none;}
+  .back:hover{color:#7FB77E;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="leaf">🌿</div>
+  <h1>课程第二册 · 进阶版</h1>
+  <div class="sub">小中医学徒 · 请输入密码</div>
+
+  <form id="f" autocomplete="off">
+    <input type="password" id="pw" placeholder="密码" autocomplete="current-password" autofocus>
+    <button type="submit" id="btn">打 开</button>
+  </form>
+
+  <label class="remember">
+    <input type="checkbox" id="rm" checked>
+    在这台设备上记住密码
+  </label>
+
+  <div class="msg info" id="msg"></div>
+  <div class="bar" id="bar"><i id="barIn"></i></div>
+
+  <a class="back" href="../">← 回到作品集首页</a>
+</div>
+
+<script>
+(function(){
+  var DATA = "2.enc";
+  var KEYID = "xzy_pw";
+  var ITER = 200000;
+
+  var f = document.getElementById('f'),
+      pw = document.getElementById('pw'),
+      btn = document.getElementById('btn'),
+      rm = document.getElementById('rm'),
+      msg = document.getElementById('msg'),
+      bar = document.getElementById('bar'),
+      barIn = document.getElementById('barIn');
+
+  function say(t, err){ msg.textContent = t; msg.className = 'msg ' + (err ? 'err' : 'info'); }
+  function prog(p){ bar.className = 'bar on'; barIn.style.width = p + '%'; }
+
+  if (!window.crypto || !window.crypto.subtle) {
+    say('这个浏览器版本太旧，请换 Chrome / Edge / Safari 新版本打开。', true);
+    btn.disabled = true;
+    return;
+  }
+
+  function buf2str(buf){
+    var dec = new TextDecoder('utf-8');
+    return dec.decode(buf);
+  }
+
+  function open(html){
+    try {
+      document.open();
+      document.write(html);
+      document.close();
+    } catch(e) {
+      var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      location.replace(URL.createObjectURL(blob));
+    }
+  }
+
+  function unlock(password, silent){
+    btn.disabled = true;
+    say(silent ? '正在打开…' : '正在下载内容…');
+    prog(8);
+
+    return fetch(DATA, {cache:'no-cache'}).then(function(r){
+      if (!r.ok) throw new Error('下载失败 HTTP ' + r.status);
+      var total = +r.headers.get('content-length') || 0;
+      if (!r.body || !total) return r.arrayBuffer();
+      var reader = r.body.getReader(), chunks = [], got = 0;
+      return (function pump(){
+        return reader.read().then(function(res){
+          if (res.done) {
+            var all = new Uint8Array(got), off = 0;
+            for (var i=0;i<chunks.length;i++){ all.set(chunks[i], off); off += chunks[i].length; }
+            return all.buffer;
+          }
+          chunks.push(res.value); got += res.value.length;
+          prog(8 + Math.round(got/total*62));
+          return pump();
+        });
+      })();
+    }).then(function(buf){
+      prog(74);
+      say('正在解密…');
+      var salt = buf.slice(0, 16), iv = buf.slice(16, 28), ct = buf.slice(28);
+      var enc = new TextEncoder();
+      return crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey'])
+        .then(function(base){
+          return crypto.subtle.deriveKey(
+            {name:'PBKDF2', salt: salt, iterations: ITER, hash:'SHA-256'},
+            base, {name:'AES-GCM', length:256}, false, ['decrypt']);
+        })
+        .then(function(key){
+          prog(86);
+          return crypto.subtle.decrypt({name:'AES-GCM', iv: iv}, key, ct);
+        });
+    }).then(function(plain){
+      prog(96);
+      say('正在打开…');
+      var html = buf2str(plain);
+      try {
+        sessionStorage.setItem(KEYID, password);
+        if (rm.checked) localStorage.setItem(KEYID, password);
+      } catch(e){}
+      prog(100);
+      setTimeout(function(){ open(html); }, 60);
+    }).catch(function(e){
+      btn.disabled = false;
+      bar.className = 'bar';
+      try {
+        sessionStorage.removeItem(KEYID);
+        localStorage.removeItem(KEYID);
+      } catch(err){}
+      if (String(e.message||e).indexOf('HTTP') >= 0) {
+        say('内容加载失败：' + e.message, true);
+      } else {
+        say('密码不对，再试一次 🙈', true);
+      }
+      pw.value = ''; pw.focus();
+    });
+  }
+
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = pw.value.trim();
+    if (!v) { say('请先输入密码', true); return; }
+    unlock(v, false);
+  });
+
+  // 同一浏览器里已经解锁过，就自动打开
+  var saved = null;
+  try { saved = sessionStorage.getItem(KEYID) || localStorage.getItem(KEYID); } catch(e){}
+  if (saved) { pw.value = saved; unlock(saved, true); }
+})();
+</script>
+</body>
+</html>
